@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#26221a">
+<title>คำนวณการเบิกใช้ทราย CDE — Complete</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e5e1d6; --paper:#faf8f2; --paper-2:#f1eee3; --ink:#26221a;
+  --ink-soft:#645f4f; --ink-faint:#8a8471; --line:#d9d3c1; --line-strong:#c3bca5;
+  --cde:#3d5a66; --cde-soft:#e3ecee; --cde-strong:#2b4048;
+  --normal:#a97a34; --normal-soft:#f4e9d3; --normal-strong:#7c581f;
+  --btn-bg:#26221a; --btn-ink:#faf8f2; --danger:#a5392c; --danger-soft:#f5e0dc;
+  --success:#426b4a; --success-soft:#e3eee5; --focus:#3d5a66;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 1px 2px rgba(30,26,16,.07),0 1px 1px rgba(30,26,16,.04);
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#16140f; --paper:#211d16; --paper-2:#2a251c; --ink:#efe9da;
+  --ink-soft:#b6ae98; --ink-faint:#847d68; --line:#3a3325; --line-strong:#4a422f;
+  --cde:#8fb7c4; --cde-soft:#213137; --cde-strong:#bcdae2; --normal:#e0b877;
+  --normal-soft:#332a17; --normal-strong:#f0d29d; --btn-bg:#efe9da; --btn-ink:#1c1912;
+  --danger:#e2988c; --danger-soft:#3a231e; --success:#a7c7ad; --success-soft:#26352a;
+  --focus:#8fb7c4; color-scheme:dark;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html{
+  scroll-padding-top:env(safe-area-inset-top,0px);
+  min-height: 100%;
+}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Noto Sans Thai","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 16px);
+  padding-left:env(safe-area-inset-left, 0px);
+  padding-right:env(safe-area-inset-right, 0px);
+  min-height: 100dvh;
+  -webkit-text-size-adjust:100%;
+}
+button,input,select{font-family:inherit}
+button{touch-action:manipulation}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+.topbar{
+  background:
+    linear-gradient(180deg,rgba(0,0,0,.16),rgba(0,0,0,0) 40%),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),var(--btn-bg);
+  color:var(--btn-ink);
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 14px;
+}
+.topbar-inner{max-width:960px;margin:0 auto}
+.topbar-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.topbar h1{margin:0 0 2px;font-size:1.15rem;font-weight:700;line-height:1.3}
+.topbar p{margin:0;font-size:.78rem;opacity:.8;line-height:1.4}
+.top-actions{display:flex;gap:6px}
+.top-actions .btn{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:inherit}
+
+.container{
+  width:100%;
+  max-width:960px;
+  margin:0 auto;
+  padding:16px 12px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.page-hidden{display:none !important;}
+
+.open-printmix-card{
+  background:var(--paper);border:1px solid var(--line-strong);border-radius:var(--radius);
+  padding:14px;margin:0 0 16px;box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.open-printmix-card .info{font-size:.8rem;color:var(--ink-soft);line-height:1.4}
+.open-printmix-card .info strong{display:block;font-size:.95rem;color:var(--ink);margin-bottom:2px}
+.open-printmix-card .btn{width:auto;padding:10px 16px;white-space:nowrap}
+
+.printmix-page-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.printmix-page-header h2{margin:0;font-size:1.05rem;font-weight:700}
+
+.hero{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin:0 0 16px;box-shadow:var(--shadow)
+}
+.hero-cell{background:var(--paper);padding:12px 10px}
+.hero-label{font-size:.68rem;color:var(--ink-soft);margin:0 0 4px}
+.hero-value{font-size:1.35rem;font-weight:700;line-height:1.1;margin:0}
+.hero-value.cde{color:var(--cde-strong)} .hero-value.normal{color:var(--normal-strong)}
+.hero-value.total{color:var(--ink)}
+.hero-unit{font-size:.72rem;font-weight:500;color:var(--ink-soft);margin-left:2px}
+.hero-sub{font-size:.65rem;color:var(--ink-faint);margin-top:4px}
+
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card h2{font-size:.92rem;margin:0 0 10px;font-weight:600}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.section-head h2{margin:0}
+
+/* ---------- Print Out Mix Custom Table Styling ---------- */
+.print-mix-card{
+  background:var(--paper);
+  border:1px solid var(--line-strong);
+  border-radius:var(--radius);
+  padding:14px;
+  margin-bottom:16px;
+  box-shadow:var(--shadow);
+}
+.print-mix-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px;
+  padding-bottom:8px;
+  border-bottom:2px solid var(--line);
+}
+.print-mix-header h2{
+  font-size:1rem;
+  font-weight:700;
+  color:var(--ink);
+  margin:0;
+}
+.print-mix-unit{
+  font-size:.72rem;
+  color:var(--ink-faint);
+  font-weight:500;
+}
+.print-mix-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.8rem;
+  min-width: 480px;
+}
+.print-mix-table th, .print-mix-table td{
+  padding:8px 6px;
+  border:1px solid var(--line-strong);
+  vertical-align:middle;
+}
+.print-mix-table th{
+  background:var(--paper-2);
+  color:var(--ink);
+  font-weight:700;
+  text-align:center;
+}
+.print-mix-table td.item-col{
+  font-weight:500;
+  color:var(--ink);
+}
+.print-mix-table td.num-col{
+  text-align:right;
+  font-weight:600;
+}
+.print-mix-table input.tbl-input{
+  width:100%;
+  max-width:100px;
+  text-align:right;
+  padding:6px 6px;
+  font:inherit;
+  font-size:0.85rem;
+  font-weight:600;
+  background:#fffde8;
+  color:#222;
+  border:1px solid #c8be98;
+  border-radius:4px;
+}
+:root[data-theme="dark"] .print-mix-table input.tbl-input{
+  background:#2e2a1d;
+  color:#efe9da;
+  border-color:#5c5339;
+}
+.print-mix-table input.tbl-input:focus{
+  outline:2px solid var(--focus);
+  background:var(--paper);
+}
+.print-mix-table select.tbl-select{
+  padding:5px 6px;
+  font-size:.78rem;
+  border-radius:4px;
+  border:1px solid var(--line-strong);
+  background:var(--paper);
+  color:var(--ink);
+  margin-top:4px;
+  width:100%;
+  max-width: 100%;
+}
+.row-highlight{
+  background:rgba(217, 211, 193, 0.35);
+  font-weight:700;
+}
+:root[data-theme="dark"] .row-highlight{
+  background:rgba(58, 51, 37, 0.6);
+}
+.text-danger{
+  color:var(--danger) !important;
+  font-weight:700;
+}
+
+.notice{background:var(--normal-soft);border:1px solid var(--line);border-left:3px solid var(--normal);border-radius:var(--radius-sm);padding:8px 10px;font-size:.75rem;line-height:1.45;color:var(--ink-soft);margin-bottom:12px}
+.notice strong{color:var(--ink)}
+.sync-badge{display:inline-flex;align-items:center;gap:6px;font-size:.7rem;color:var(--ink-faint);padding:0 0 8px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--cde)}
+.sync-dot.offline{background:var(--ink-faint)}
+.table-wrap{
+  overflow-x:auto;
+  -webkit-overflow-scrolling: touch;
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  margin-bottom: 4px;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:550px}
+thead th{text-align:left;font-weight:600;font-size:.68rem;color:var(--ink-soft);background:var(--paper-2);padding:8px;white-space:nowrap;border-bottom:1px solid var(--line)}
+tbody td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none} tbody tr:hover{background:var(--paper-2)}
+td.num,th.num{text-align:right}
+.cell-input{
+  width:100%;min-width:50px;border:1px solid transparent;background:transparent;
+  font:inherit;color:inherit;padding:6px 4px;border-radius:6px;font-size:0.85rem;
+}
+.cell-input:hover{border-color:var(--line-strong)}
+.cell-input:focus{outline:none;border-color:var(--focus);background:var(--paper)}
+.cell-input.num-field{text-align:right}.cell-input.code-field{font-weight:600;min-width:80px}
+.tag{display:inline-block;font-size:.65rem;padding:2px 6px;border-radius:99px;background:var(--paper-2);color:var(--ink-soft);border:1px solid var(--line);white-space:nowrap}
+.tag.warn{background:var(--normal-soft);color:var(--normal-strong);border-color:var(--normal)}
+.icon-btn{border:none;background:transparent;color:var(--ink-faint);cursor:pointer;padding:8px;border-radius:6px;font-size:1rem;line-height:1}
+.icon-btn:hover{background:var(--danger-soft);color:var(--danger)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line-strong);
+  background:var(--paper);color:var(--ink);font:inherit;font-weight:600;font-size:.8rem;
+  padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;min-height:38px;
+}
+.btn:active{transform:translateY(1px)}
+.btn.btn-primary{background:var(--btn-bg);color:var(--btn-ink);border-color:var(--btn-bg);width:100%;padding:10px 12px;font-size:.88rem}
+.btn.btn-primary:disabled{opacity:.45;cursor:not-allowed}.btn.btn-ghost{background:transparent}
+.btn.small{padding:5px 9px;font-size:.72rem;min-height:30px;}.btn.danger{color:var(--danger)}
+.btn.success{color:var(--success);border-color:var(--success)}
+.btn:focus-visible,.cell-input:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--ink-soft)}
+.field input,.field select{
+  font:inherit;font-size:.88rem;color:var(--ink);background:var(--paper);
+  border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:8px;width:100%;min-height:38px;
+}
+.field input:focus,.field select:focus{outline:none;border-color:var(--focus)}
+
+.calc-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.calc-preview{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px
+}
+.preview-cell{background:var(--paper-2);padding:8px}
+.preview-label{font-size:.65rem;color:var(--ink-soft);margin-bottom:2px}
+.preview-value{font-size:1rem;font-weight:700}
+.preview-value.cde{color:var(--cde-strong)} .preview-value.normal{color:var(--normal-strong)}
+.preview-unit{font-size:.68rem;color:var(--ink-faint);margin-left:2px}
+.validation{min-height:18px;font-size:.72rem;line-height:1.4;margin:4px 0 8px}
+.validation.ok{color:var(--success)}.validation.warn{color:var(--normal-strong)}.validation.err{color:var(--danger)}
+.empty{padding:14px 10px;text-align:center;color:var(--ink-faint);font-size:.75rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.toolbar .spacer{flex:1}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.stat{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px}
+.stat-label{font-size:.65rem;color:var(--ink-soft)}.stat-value{font-size:.95rem;font-weight:700;margin-top:2px}
+
+/* Line Chart Canvas Container */
+.chart-container {
+  width: 100%;
+  height: 220px;
+  position: relative;
+  margin-top: 10px;
+}
+.chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 10px;font-size:.68rem;color:var(--ink-soft)}
+.legend-item{display:inline-flex;align-items:center;gap:4px}.legend-dot{width:7px;height:7px;border-radius:50%}
+.legend-dot.cde{background:var(--cde)}.legend-dot.normal{background:var(--normal)}
+.search{max-width:200px;width:100%;}
+.search input{padding:6px 8px;font-size:.75rem;min-height:32px;}
+.footer{text-align:center;color:var(--ink-faint);font-size:.65rem;padding:8px 0 16px}
+.toast{
+  position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom, 0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--btn-bg);color:var(--btn-ink);padding:8px 14px;border-radius:99px;font-size:.75rem;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);transition:.18s ease;z-index:50;white-space:nowrap
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- Responsive Adjustments for Mobile (iPhone) ---------- */
+@media(max-width:768px){
+  .hero{grid-template-columns:repeat(3, 1fr);}
+  .hero-cell{padding:10px 6px;}
+  .hero-value{font-size:1.1rem;}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .calc-grid{grid-template-columns:1fr;}
+  .open-printmix-card{flex-direction:column;align-items:stretch;}
+  .open-printmix-card .btn{width:100%;}
+}
+
+@media(max-width:480px){
+  .topbar-row{flex-direction:row; align-items:center;}
+  .topbar h1{font-size:1rem;}
+  .topbar p{font-size:0.7rem;}
+  .top-actions .btn span{display:none}
+  .top-actions .btn{padding:6px 8px; min-height:32px;}
+  
+  .hero{grid-template-columns:1fr;}
+  .hero-cell:last-child{grid-column:auto;}
+  .hero-value{font-size:1.3rem;}
+  
+  .calc-preview{grid-template-columns:1fr;}
+  .container{padding-left:10px;padding-right:10px}
+  .toolbar .search{max-width:none;width:100%}
+  
+  .print-mix-header{flex-direction:column; align-items:flex-start; gap:4px;}
+  .print-mix-table{min-width: 100%;}
+  .print-mix-table input.tbl-input{max-width:75px; font-size:0.8rem; padding:4px;}
+}
+
+/* ---------- Print / PDF report ---------- */
+@media print{
+  @page{size:A4 portrait;margin:10mm;}
+  body{background:#fff !important;color:#111 !important;padding:0 !important;}
+  .topbar,.hero,.card:not(#historyCard),button,.sync-badge,.notice,
+  #mixTableCard,#calcCard,#dashboardCard,.no-print,.open-printmix-card,
+  #mainView,.printmix-page-header button{display:none !important;}
+  
+  #printMixPage{display:block !important;}
+  .print-mix-card{border:none !important;box-shadow:none !important;padding:0 !important;background:#fff !important;}
+  .table-wrap{overflow:visible !important;border:none !important;}
+  table{min-width:0 !important;width:100% !important;font-size:10pt !important;}
+  thead th{background:#eee !important;color:#111 !important;}
+  tbody td{color:#111 !important;border-color:#bbb !important;}
+  input.tbl-input{border:none !important;background:transparent !important;font-weight:bold !important;padding:0 !important;color:#111 !important;}
+  select.tbl-select{border:none !important;background:transparent !important;appearance:none;padding:0 !important;color:#111 !important;font-weight:bold !important;}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-row">
+      <div>
+        <h1>คำนวณการเบิกใช้ทราย CDE จัดทำโดย Belly pongston</h1>
+        <p>CDE Sand Usage Control System · คำนวณ • บันทึก • สรุป • ตรวจสอบ</p>
+      </div>
+      <div class="top-actions">
+        <button id="themeBtn" class="btn" type="button" title="สลับธีม">◐ <span>ธีม</span></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- ================= MAIN VIEW ================= -->
+  <div id="mainView">
+
+    <section class="open-printmix-card" aria-label="เปิดหน้า Print Out mix">
+      <div class="info">
+        <strong>🖨️ เบิกใช้ Print Out mix</strong>
+        เปิดเป็นอีกหน้าเพื่อกรอก/ตรวจสอบข้อมูลการเบิกใช้ Print Out mix โดยเฉพาะ
+      </div>
+      <button id="openPrintMixBtn" class="btn btn-primary" type="button">เปิดหน้า Print Out mix →</button>
+    </section>
+
+    <section class="hero" aria-label="สรุปยอด">
+      <div class="hero-cell">
+        <div class="hero-label">CDE ประจำวันที่เลือก</div>
+        <p class="hero-value cde num"><span id="heroCdeToday">0.000</span><span class="hero-unit">ตัน</span></p>
+        <div class="hero-sub" id="heroCdeTodaySub">0 รายการ</div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-label">ทรายธรรมดา ประจำวันที่เลือก</div>
+        <p class="hero-value normal num"><span id="heroNormalToday">0.000</span><span class="hero-unit">ตัน</span></p>
+        <div class="hero-sub">รวมจากรายการในวันที่เลือก</div>
+      </div>
+      <div class="hero-cell">
+        <div class="hero-label">CDE สะสมทั้งหมด</div>
+        <p class="hero-value total num"><span id="heroCdeAll">0.000</span><span class="hero-unit">ตัน</span></p>
+        <div class="hero-sub" id="heroTotalSub">ข้อมูลในระบบ</div>
+      </div>
+    </section>
+
+    <!-- ย้ายขึ้นมาเป็นหัวข้อแรก -->
+    <section class="card">
+      <div class="section-head">
+        <h2>1. กราฟยอดการผลิต</h2>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot cde"></span>CDE (ตัน)</span>
+        <span class="legend-item"><span class="legend-dot normal"></span>ทรายธรรมดา (ตัน)</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="dailyLineChart"></canvas>
+      </div>
+      <div id="dailyEmpty" class="empty" style="display:none;">ยังไม่มีข้อมูลรายวัน</div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>2. บันทึกการเบิกใช้</h2>
+        <span class="tag" id="recordStatus">พร้อมใช้งาน</span>
+      </div>
+      <div class="notice">
+        <strong>วิธีใช้:</strong> เลือกรหัสมิกซ์ → ใส่จำนวนคอนกรีต (m³) → ตรวจสอบ Preview → กด “บันทึกการเบิก”
+        ระบบจะคำนวณน้ำหนัก CDE และทรายธรรมดาจากค่าที่กำหนดในมิกซ์นั้นโดยอัตโนมัติ
+      </div>
+      <div class="sync-badge"><span id="syncDot" class="sync-dot offline"></span><span id="syncText">บันทึกในเบราว์เซอร์นี้</span></div>
+
+      <div class="calc-grid">
+        <label class="field">วันที่
+          <input id="dateInput" type="date">
+        </label>
+        <label class="field">รหัสมิกซ์
+          <select id="mixSelect"></select>
+        </label>
+        <label class="field">จำนวนคอนกรีต (m³)
+          <input id="qtyInput" type="number" min="0" step="0.01" inputmode="decimal" placeholder="เช่น 10">
+        </label>
+      </div>
+
+      <div class="calc-preview">
+        <div class="preview-cell">
+          <div class="preview-label">CDE ที่ต้องใช้</div>
+          <div class="preview-value cde num"><span id="previewCde">0.000</span><span class="preview-unit">ตัน</span></div>
+        </div>
+        <div class="preview-cell">
+          <div class="preview-label">ทรายธรรมดาที่ต้องใช้</div>
+          <div class="preview-value normal num"><span id="previewNormal">0.000</span><span class="preview-unit">ตัน</span></div>
+        </div>
+        <div class="preview-cell">
+          <div class="preview-label">ทรายรวม</div>
+          <div class="preview-value num"><span id="previewTotal">0.000</span><span class="preview-unit">ตัน</span></div>
+        </div>
+      </div>
+      <div id="calcValidation" class="validation"></div>
+      <button id="addEntryBtn" class="btn btn-primary" type="button" disabled>＋ บันทึกการเบิก</button>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>3. ตารางข้อมูลมิกซ์</h2>
+        <div style="display:flex; gap:6px;">
+          <button id="toggleMixTableBtn" class="btn small" type="button">▼ ซ่อนตาราง</button>
+          <button id="addMixBtn" class="btn small" type="button">＋ เพิ่มมิกซ์</button>
+        </div>
+      </div>
+      <div class="notice">
+        ค่า CDE และทรายธรรมดาเป็น <strong>kg/m³</strong> ของแต่ละมิกซ์ เมื่อแก้ไขระบบจะบันทึกให้อัตโนมัติ
+        และรายการเบิกใหม่จะใช้ค่าล่าสุด
+      </div>
+      <div id="mixTableWrap" class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>รหัสมิกซ์</th>
+              <th>สัดส่วน / Variant</th>
+              <th class="num">CDE kg/m³</th>
+              <th class="num">ทรายธรรมดา kg/m³</th>
+              <th>หมายเหตุ</th>
+              <th>สถานะ</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="mixTableBody"></tbody>
+        </table>
+        <div id="mixEmpty" class="empty">ยังไม่มีข้อมูลมิกซ์ — กด “เพิ่มมิกซ์” เพื่อเริ่มต้น</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>4. Dashboard</h2>
+        <button id="clearEntriesBtn" class="btn small danger" type="button">ล้างประวัติการเบิก</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-label">จำนวนรายการ</div><div class="stat-value num" id="statEntries">0</div></div>
+        <div class="stat"><div class="stat-label">คอนกรีตรวม</div><div class="stat-value num" id="statQty">0.00 m³</div></div>
+        <div class="stat"><div class="stat-label">CDE รวม</div><div class="stat-value num" id="statCde">0.000 ตัน</div></div>
+        <div class="stat"><div class="stat-label">ทรายธรรมดารวม</div><div class="stat-value num" id="statNormal">0.000 ตัน</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>5. สรุปตามมิกซ์</h2>
+        <div class="toolbar">
+          <label class="search"><input id="mixSummarySearch" type="search" placeholder="ค้นหา Mix / Variant"></label>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>มิกซ์</th><th class="num">m³</th><th class="num">CDE (ตัน)</th><th class="num">ทรายธรรมดา (ตัน)</th><th class="num">สัดส่วน CDE</th></tr></thead>
+          <tbody id="mixSummaryBody"></tbody>
+        </table>
+        <div id="mixSummaryEmpty" class="empty">ยังไม่มีรายการเบิก</div>
+      </div>
+    </section>
+
+    <section class="card" id="historyCard">
+      <div class="section-head">
+        <h2>6. ประวัติการเบิก</h2>
+        <div class="toolbar">
+          <label class="search"><input id="logSearch" type="search" placeholder="ค้นหา วันที่ / Mix"></label>
+          <button id="exportCsvBtn" class="btn small" type="button">⇩ CSV</button>
+          <button id="exportJsonBtn" class="btn small" type="button">⇩ Backup</button>
+          <label class="btn small" for="importJsonInput">⇧ Restore</label>
+          <input id="importJsonInput" type="file" accept=".json,application/json" hidden>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>วันที่</th><th>รหัสมิกซ์</th><th class="num">m³</th><th class="num">CDE (ตัน)</th><th class="num">ทรายธรรมดา (ตัน)</th><th></th></tr></thead>
+          <tbody id="logTableBody"></tbody>
+        </table>
+        <div id="logEmpty" class="empty">ยังไม่มีรายการเบิก</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>7. จัดการข้อมูลระบบ</h2></div>
+      <div class="toolbar">
+        <button id="resetBtn" class="btn small danger" type="button">รีเซ็ตข้อมูลทั้งหมด</button>
+        <button id="refreshBtn" class="btn small" type="button">↻ รีเฟรช</button>
+        <span class="spacer"></span>
+        <span class="tag">LocalStorage Standalone</span>
+      </div>
+    </section>
+
+    <div class="footer">CDE Sand Usage Control System · เวอร์ชัน Complete · ทำงาน Offline ได้</div>
+  </div>
+  <!-- ================= END MAIN VIEW ================= -->
+
+  <!-- ================= PRINT OUT MIX PAGE ================= -->
+  <div id="printMixPage" class="page-hidden">
+    <div class="printmix-page-header">
+      <button id="backFromPrintMixBtn" class="btn" type="button">← กลับหน้าหลัก</button>
+      <h2>ตารางคำนวณยอดวัตถุดิบ (Print Out mix)</h2>
+      <button id="printPdfBtn" class="btn btn-primary" type="button" style="width:auto; padding:8px 14px;">🖨️ Save PDF &amp; Print</button>
+    </div>
+
+    <section class="print-mix-card" aria-label="ตารางคำนวณยอดวัตถุดิบ">
+      <div class="print-mix-header">
+        <h2>ตารางคำนวณยอดวัตถุดิบ</h2>
+        <span class="print-mix-unit">หน่วย: ตัน (TON)</span>
+      </div>
+
+      <div class="toolbar no-print" style="margin-bottom:11px;">
+        <button id="pResetAutoBtn" class="btn small" type="button">⟲ ดึงยอดเบิกประจำวันมายัง Mix 1</button>
+        <span class="tag warn">ดึงยอดเบิกจ่ายทราย CDE และทรายธรรมดาประจำวันที่เลือก</span>
+      </div>
+
+      <div class="table-wrap" style="border:none;">
+        <table class="print-mix-table">
+          <thead>
+            <tr>
+              <th style="width:40%;">รายการ / ความหมายสูตร</th>
+              <th style="width:30%;">CDE (TON)</th>
+              <th style="width:30%;">SAND (TON)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="item-col">ยอดยกมาเริ่มต้น (A)</td>
+              <td class="num-col"><input id="pStockACde" class="tbl-input" type="number" step="0.001" value="92.557"></td>
+              <td class="num-col"><input id="pStockANorm" class="tbl-input" type="number" step="0.001" value="92.557"></td>
+            </tr>
+
+            <tr>
+              <td class="item-col">
+                ยอดใช้ตาม Mix Design C1
+                <select id="pMix1Select" class="tbl-select"></select>
+                <div style="font-size:0.72rem; color:var(--ink-faint); margin-top:4px;">
+                  จำนวนผลิต: <input id="pMix1Qty" class="tbl-input" type="number" step="0.01" value="21.00" style="width:65px; display:inline-block; padding:2px 4px;"> m³
+                </div>
+              </td>
+              <td class="num-col"><input id="pMix1Cde" class="tbl-input" type="number" step="0.001" value="1.084"></td>
+              <td class="num-col"><input id="pMix1Norm" class="tbl-input" type="number" step="0.001" value="1.084"></td>
+            </tr>
+
+            <tr>
+              <td class="item-col">
+                ยอดใช้ตาม Mix Design C2 (C5)
+                <select id="pMix2Select" class="tbl-select"></select>
+                <div style="font-size:0.72rem; color:var(--ink-faint); margin-top:4px;">
+                  จำนวนผลิต: <input id="pMix2Qty" class="tbl-input" type="number" step="0.01" value="0.00" style="width:65px; display:inline-block; padding:2px 4px;"> m³
+                </div>
+              </td>
+              <td class="num-col"><input id="pMix2Cde" class="tbl-input" type="number" step="0.001" value="0.000"></td>
+              <td class="num-col"><input id="pMix2Norm" class="tbl-input" type="number" step="0.001" value="0.000"></td>
+            </tr>
+
+            <tr>
+              <td class="item-col">ปรับปรุง Manual (สำหรับ B)</td>
+              <td class="num-col"><input id="pAdjForBCde" class="tbl-input" type="number" step="0.001" value="7.588"></td>
+              <td class="num-col"><input id="pAdjForBNorm" class="tbl-input" type="number" step="0.001" value="7.588"></td>
+            </tr>
+
+            <tr class="row-highlight">
+              <td class="item-col">* รวม (B)</td>
+              <td id="pTotalBCde" class="num-col num">8.672</td>
+              <td id="pTotalBNorm" class="num-col num">8.672</td>
+            </tr>
+
+            <tr>
+              <td class="item-col">ยอดใช้ Print Out</td>
+              <td class="num-col"><input id="pPrintOutCde" class="tbl-input" type="number" step="0.001" value="9.191"></td>
+              <td class="num-col"><input id="pPrintOutNorm" class="tbl-input" type="number" step="0.001" value="9.191"></td>
+            </tr>
+
+            <tr>
+              <td class="item-col">ปรับปรุง Manual / เบิกใช้ Manual (สำหรับ C)</td>
+              <td class="num-col"><input id="pAdjForCCde" class="tbl-input" type="number" step="0.001" value="0.000"></td>
+              <td class="num-col"><input id="pAdjForCNorm" class="tbl-input" type="number" step="0.001" value="0.000"></td>
+            </tr>
+
+            <tr class="row-highlight">
+              <td class="item-col">* รวม (C)</td>
+              <td id="pTotalCCde" class="num-col num">9.191</td>
+              <td id="pTotalCNorm" class="num-col num">9.191</td>
+            </tr>
+
+            <tr>
+              <td class="item-col">** ผลต่าง (B - C)</td>
+              <td id="pDiffCde" class="num-col num">-0.519</td>
+              <td id="pDiffNorm" class="num-col num">-0.519</td>
+            </tr>
+
+            <tr class="row-highlight">
+              <td class="item-col">ยอดยกไป (E = A - C)</td>
+              <td id="pStockECde" class="num-col num">83.366</td>
+              <td id="pStockENorm" class="num-col num">83.366</td>
+            </tr>
+
+            <tr>
+              <td class="item-col">ยอดตรวจนับจริง (D)</td>
+              <td class="num-col"><input id="pStockDCde" class="tbl-input" type="number" step="0.001" value="80.000"></td>
+              <td class="num-col"><input id="pStockDNorm" class="tbl-input" type="number" step="0.001" value="80.000"></td>
+            </tr>
+
+            <tr>
+              <td class="item-col">** ผลต่าง (E - D)</td>
+              <td id="pDiffEDCde" class="num-col num">3.366</td>
+              <td id="pDiffEDNorm" class="num-col num">3.366</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <!-- ================= END PRINT OUT MIX PAGE ================= -->
+
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  const STORAGE = {
+    mixes: 'cde-sand-usage-mixes-v6',
+    entries: 'cde-sand-usage-entries-v6',
+    theme: 'cde-sand-usage-theme-v6',
+    printMixState: 'cde-sand-print-mix-state-v7'
+  };
+
+  let mixes = [];
+  let entries = [];
+  let toastTimer = null;
+  let isMixTableVisible = true;
+
+  let printState = {
+    mix1Id: '', mix1Qty: 21.00,
+    mix2Id: '', mix2Qty: 0.00,
+    mix1CdeDirty: false, mix1NormDirty: false,
+    mix2CdeDirty: false, mix2NormDirty: false,
+    mix1CdeManual: 1.084, mix1NormManual: 1.084,
+    mix2CdeManual: 0.000, mix2NormManual: 0.000,
+    adjForBCde: 7.588, adjForBNorm: 7.588,
+    printOutCde: 9.191, printOutNorm: 9.191,
+    adjForCCde: 0.000, adjForCNorm: 0.000,
+    stockACde: 92.557, stockANorm: 92.557,
+    stockDCde: 80.000, stockDNorm: 80.000
+  };
+
+  const $ = id => document.getElementById(id);
+
+  function uid(prefix){
+    return (prefix || 'id') + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8);
+  }
+
+  function todayStr(){
+    const d = new Date();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+
+  function getSelectedDate(){
+    const dateInput = $('dateInput');
+    return (dateInput && dateInput.value) ? dateInput.value : todayStr();
+  }
+
+  function fmt(v, digits){
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toLocaleString('th-TH',{minimumFractionDigits:digits,maximumFractionDigits:digits}) : '0.' + '0'.repeat(digits);
+  }
+
+  function esc(v){
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function toast(msg){
+    const t = $('toast');
+    if(!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'),1800);
+  }
+
+  function normalizeMix(m){
+    return {
+      id: m.id || uid('mix'),
+      code: String(m.code ?? '').trim(),
+      variant: String(m.variant ?? '').trim(),
+      cde: Math.max(0, Number(m.cde) || 0),
+      normal: Math.max(0, Number(m.normal) || 0),
+      note: String(m.note ?? '').trim(),
+      updatedAt: Number(m.updatedAt) || Date.now()
+    };
+  }
+
+  function normalizeEntry(e){
+    return {
+      id: e.id || uid('entry'),
+      mixId: e.mixId || '',
+      code: String(e.code ?? ''),
+      variant: String(e.variant ?? ''),
+      cde: Math.max(0, Number(e.cde) || 0),
+      normal: Math.max(0, Number(e.normal) || 0),
+      qty: Math.max(0, Number(e.qty) || 0),
+      cdeTon: Math.max(0, Number(e.cdeTon) || 0),
+      normalTon: Math.max(0, Number(e.normalTon) || 0),
+      date: /^\d{4}-\d{2}-\d{2}$/.test(e.date || '') ? e.date : todayStr(),
+      createdAt: Number(e.createdAt) || Date.now()
+    };
+  }
+
+  function saveLocal(){
+    try {
+      localStorage.setItem(STORAGE.mixes, JSON.stringify(mixes));
+      localStorage.setItem(STORAGE.entries, JSON.stringify(entries));
+      localStorage.setItem(STORAGE.printMixState, JSON.stringify(printState));
+    } catch(e) {}
+  }
+
+  function loadLocal(){
+    try{
+      const m = JSON.parse(localStorage.getItem(STORAGE.mixes) || '[]');
+      const e = JSON.parse(localStorage.getItem(STORAGE.entries) || '[]');
+      const ps = JSON.parse(localStorage.getItem(STORAGE.printMixState) || 'null');
+      
+      if(!Array.isArray(m) || m.length === 0) {
+        mixes = [
+          { id: uid('mix'), code: '241AE011', variant: '50%', cde: 450, normal: 350, note: 'ตัวอย่างมิกซ์ C1' },
+          { id: uid('mix'), code: '626254C', variant: '50%', cde: 400, normal: 300, note: 'ตัวอย่างมิกซ์ C2' }
+        ];
+      } else {
+        mixes = m.map(normalizeMix);
+      }
+
+      entries = Array.isArray(e) ? e.map(normalizeEntry) : [];
+      
+      if(ps) {
+        printState = {...printState, ...ps};
+        if(ps.mix1Qty !== undefined && $('pMix1Qty')) $('pMix1Qty').value = ps.mix1Qty;
+        if(ps.mix2Qty !== undefined && $('pMix2Qty')) $('pMix2Qty').value = ps.mix2Qty;
+        if(ps.adjForBCde !== undefined && $('pAdjForBCde')) $('pAdjForBCde').value = ps.adjForBCde;
+        if(ps.adjForBNorm !== undefined && $('pAdjForBNorm')) $('pAdjForBNorm').value = ps.adjForBNorm;
+        if(ps.printOutCde !== undefined && $('pPrintOutCde')) $('pPrintOutCde').value = ps.printOutCde;
+        if(ps.printOutNorm !== undefined && $('pPrintOutNorm')) $('pPrintOutNorm').value = ps.printOutNorm;
+        if(ps.adjForCCde !== undefined && $('pAdjForCCde')) $('pAdjForCCde').value = ps.adjForCCde;
+        if(ps.adjForCNorm !== undefined && $('pAdjForCNorm')) $('pAdjForCNorm').value = ps.adjForCNorm;
+        if(ps.stockACde !== undefined && $('pStockACde')) $('pStockACde').value = ps.stockACde;
+        if(ps.stockANorm !== undefined && $('pStockANorm')) $('pStockANorm').value = ps.stockANorm;
+        if(ps.stockDCde !== undefined && $('pStockDCde')) $('pStockDCde').value = ps.stockDCde;
+        if(ps.stockDNorm !== undefined && $('pStockDNorm')) $('pStockDNorm').value = ps.stockDNorm;
+        if(ps.mix1CdeManual !== undefined && $('pMix1Cde')) $('pMix1Cde').value = ps.mix1CdeManual;
+        if(ps.mix1NormManual !== undefined && $('pMix1Norm')) $('pMix1Norm').value = ps.mix1NormManual;
+        if(ps.mix2CdeManual !== undefined && $('pMix2Cde')) $('pMix2Cde').value = ps.mix2CdeManual;
+        if(ps.mix2NormManual !== undefined && $('pMix2Norm')) $('pMix2Norm').value = ps.mix2NormManual;
+      }
+    }catch(err){
+      mixes = []; entries = [];
+    }
+    renderAll();
+  }
+
+  function addMix(data){
+    const mix = normalizeMix(data);
+    if(!mix.code) mix.code = 'มิกซ์ใหม่';
+    mixes.push(mix);
+    saveLocal();
+    renderAll();
+    toast('เพิ่มมิกซ์แล้ว');
+    return mix;
+  }
+
+  function updateMix(id, patch){
+    const i = mixes.findIndex(x=>x.id===id);
+    if(i < 0) return;
+    mixes[i] = normalizeMix({...mixes[i],...patch,updatedAt:Date.now()});
+    saveLocal();
+  }
+
+  function deleteMix(id){
+    const mix = mixes.find(x=>x.id===id);
+    if(!mix) return;
+    if(!confirm('ลบมิกซ์ "' + (mix.code || '-') + '" ?')) return;
+    mixes = mixes.filter(x=>x.id!==id);
+    saveLocal();
+    renderAll();
+    toast('ลบมิกซ์แล้ว');
+  }
+
+  function addEntry(data){
+    const entry = normalizeEntry(data);
+    entries.push(entry);
+    saveLocal();
+    renderAll();
+    toast('บันทึกการเบิกแล้ว');
+  }
+
+  function deleteEntry(id){
+    if(!confirm('ลบรายการเบิกนี้หรือไม่?')) return;
+    entries = entries.filter(x=>x.id!==id);
+    saveLocal();
+    renderAll();
+    toast('ลบรายการแล้ว');
+  }
+
+  function currentSelectedMix(){
+    const sel = $('mixSelect');
+    if(!sel) return null;
+    return mixes.find(m=>m.id === sel.value) || null;
+  }
+
+  function renderPrintMixSection(){
+    const sel1 = $('pMix1Select');
+    const sel2 = $('pMix2Select');
+    if(!sel1 || !sel2) return;
+
+    const val1 = sel1.value || printState.mix1Id;
+    const val2 = sel2.value || printState.mix2Id;
+
+    let optionsHtml = '<option value="">— เลือกรหัสมิกซ์ —</option>';
+    mixes.forEach(m => {
+      const optText = m.variant ? m.code + ' — ' + m.variant : m.code;
+      optionsHtml += `<option value="${m.id}">${esc(optText)}</option>`;
+    });
+
+    sel1.innerHTML = optionsHtml;
+    sel2.innerHTML = optionsHtml;
+
+    if (val1) sel1.value = val1;
+    if (val2) sel2.value = val2;
+
+    const qty1 = Number($('pMix1Qty')?.value) || 0;
+    const qty2 = Number($('pMix2Qty')?.value) || 0;
+
+    if (sel1.value && sel1.value !== '') {
+      const m1 = mixes.find(m => m.id === sel1.value);
+      const m1CdeRate = m1 ? m1.cde : 450;
+      const m1NormRate = m1 ? m1.normal : 350;
+      if(!printState.mix1CdeDirty && $('pMix1Cde'))$('pMix1Cde').value = ((qty1 * m1CdeRate) / 1000).toFixed(3);
+      if(!printState.mix1NormDirty && $('pMix1Norm'))$('pMix1Norm').value = ((qty1 * m1NormRate) / 1000).toFixed(3);
+    }
+
+    if (sel2.value && sel2.value !== '') {
+      const m2 = mixes.find(m => m.id === sel2.value);
+      const m2CdeRate = m2 ? m2.cde : 0;
+      const m2NormRate = m2 ? m2.normal : 0;
+      if(!printState.mix2CdeDirty && $('pMix2Cde'))$('pMix2Cde').value = ((qty2 * m2CdeRate) / 1000).toFixed(3);
+      if(!printState.mix2NormDirty && $('pMix2Norm'))$('pMix2Norm').value = ((qty2 * m2NormRate) / 1000).toFixed(3);
+    }
+
+    const stockACde = Number($('pStockACde')?.value) || 0;
+    const stockANorm = Number($('pStockANorm')?.value) || 0;
+
+    const cde1 = Number($('pMix1Cde')?.value) || 0;
+    const norm1 = Number($('pMix1Norm')?.value) || 0;
+    const cde2 = Number($('pMix2Cde')?.value) || 0;
+    const norm2 = Number($('pMix2Norm')?.value) || 0;
+
+    const adjForBCde = Number($('pAdjForBCde')?.value) || 0;
+    const adjForBNorm = Number($('pAdjForBNorm')?.value) || 0;
+
+    const totalBCde = cde1 + cde2 + adjForBCde;
+    const totalBNorm = norm1 + norm2 + adjForBNorm;
+
+    if($('pTotalBCde'))$('pTotalBCde').textContent = fmt(totalBCde, 3);
+    if($('pTotalBNorm'))$('pTotalBNorm').textContent = fmt(totalBNorm, 3);
+
+    const printOutCde = Number($('pPrintOutCde')?.value) || 0;
+    const printOutNorm = Number($('pPrintOutNorm')?.value) || 0;
+
+    const adjForCCde = Number($('pAdjForCCde')?.value) || 0;
+    const adjForCNorm = Number($('pAdjForCNorm')?.value) || 0;
+
+    const totalCCde = printOutCde + adjForCCde;
+    const totalCNorm = printOutNorm + adjForCNorm;
+
+    if($('pTotalCCde'))$('pTotalCCde').textContent = fmt(totalCCde, 3);
+    if($('pTotalCNorm'))$('pTotalCNorm').textContent = fmt(totalCNorm, 3);
+
+    const diffCde = totalBCde - totalCCde;
+    const diffNorm = totalBNorm - totalCNorm;
+
+    const elDiffCde = $('pDiffCde');
+    const elDiffNorm = $('pDiffNorm');
+    if(elDiffCde) {
+      elDiffCde.textContent = fmt(diffCde, 3);
+      elDiffCde.className = 'num-col num ' + (diffCde < 0 ? 'text-danger' : '');
+    }
+    if(elDiffNorm) {
+      elDiffNorm.textContent = fmt(diffNorm, 3);
+      elDiffNorm.className = 'num-col num ' + (diffNorm < 0 ? 'text-danger' : '');
+    }
+
+    const stockECde = stockACde - totalCCde;
+    const stockENorm = stockANorm - totalCNorm;
+
+    if($('pStockECde'))$('pStockECde').textContent = fmt(stockECde, 3);
+    if($('pStockENorm'))$('pStockENorm').textContent = fmt(stockENorm, 3);
+
+    const stockDCde = Number($('pStockDCde')?.value) || 0;
+    const stockDNorm = Number($('pStockDNorm')?.value) || 0;
+
+    const diffEDCde = stockECde - stockDCde;
+    const diffEDNorm = stockENorm - stockDNorm;
+
+    const elDiffEDCde = $('pDiffEDCde');
+    const elDiffEDNorm = $('pDiffEDNorm');
+    if(elDiffEDCde) {
+      elDiffEDCde.textContent = fmt(diffEDCde, 3);
+      elDiffEDCde.className = 'num-col num ' + (diffEDCde < 0 ? 'text-danger' : '');
+    }
+    if(elDiffEDNorm) {
+      elDiffEDNorm.textContent = fmt(diffEDNorm, 3);
+      elDiffEDNorm.className = 'num-col num ' + (diffEDNorm < 0 ? 'text-danger' : '');
+    }
+
+    printState = {
+      ...printState,
+      mix1Id: sel1.value, mix1Qty: qty1,
+      mix2Id: sel2.value, mix2Qty: qty2,
+      mix1CdeManual: cde1, mix1NormManual: norm1,
+      mix2CdeManual: cde2, mix2NormManual: norm2,
+      adjForBCde, adjForBNorm,
+      printOutCde, printOutNorm,
+      adjForCCde, adjForCNorm,
+      stockACde, stockANorm,
+      stockDCde, stockDNorm
+    };
+    saveLocal();
+  }
+
+  function renderMixSelect(){
+    const select = $('mixSelect');
+    if(!select) return;
+    const previous = select.value;
+    select.innerHTML = '';
+    if(!mixes.length){
+      select.innerHTML = '<option value="">— ยังไม่มีมิกซ์ —</option>';
+      return;
+    }
+    mixes.slice().sort((a,b)=>a.code.localeCompare(b.code,'th')).forEach(m=>{
+      const o = document.createElement('option');
+      o.value = m.id;
+      o.textContent = m.variant ? m.code + ' — ' + m.variant : m.code;
+      select.appendChild(o);
+    });
+    if(mixes.some(m=>m.id===previous)) select.value = previous;
+    else select.selectedIndex = 0;
+  }
+
+  function renderMixTable(){
+    const tbody = $('mixTableBody');
+    const empty = $('mixEmpty');
+    if(!tbody || !empty) return;
+    tbody.innerHTML = '';
+    empty.style.display = mixes.length ? 'none' : 'block';
+
+    mixes.slice().sort((a,b)=>a.code.localeCompare(b.code,'th')).forEach(m=>{
+      const tr = document.createElement('tr');
+
+      function input(value, cls, type, field){
+        const el = document.createElement('input');
+        el.className = 'cell-input ' + (cls || '');
+        el.type = type || 'text';
+        el.value = value ?? '';
+        el.dataset.field = field;
+        el.addEventListener('change',()=>{
+          let v = el.value;
+          if(type === 'number') v = Math.max(0,Number(v)||0);
+          updateMix(m.id,{[field]:v});
+          renderAll();
+        });
+        return el;
+      }
+
+      const tdCode = document.createElement('td'); tdCode.appendChild(input(m.code,'code-field','text','code'));
+      const tdVariant = document.createElement('td'); tdVariant.appendChild(input(m.variant,'','text','variant'));
+      const tdCde = document.createElement('td'); tdCde.className='num'; tdCde.appendChild(input(m.cde,'num-field','number','cde'));
+      const tdNormal = document.createElement('td'); tdNormal.className='num'; tdNormal.appendChild(input(m.normal,'num-field','number','normal'));
+      const tdNote = document.createElement('td'); tdNote.appendChild(input(m.note,'','text','note'));
+
+      const tdStatus = document.createElement('td');
+      const status = document.createElement('span');
+      status.className = 'tag ' + ((m.cde + m.normal) > 0 ? '' : 'warn');
+      status.textContent = (m.cde + m.normal) > 0 ? 'พร้อมใช้' : 'รอกรอกค่า';
+      tdStatus.appendChild(status);
+
+      const tdDel = document.createElement('td');
+      const btn = document.createElement('button');
+      btn.className='icon-btn'; btn.type='button'; btn.textContent='✕';
+      btn.addEventListener('click',()=>deleteMix(m.id));
+      tdDel.appendChild(btn);
+
+      [tdCode,tdVariant,tdCde,tdNormal,tdNote,tdStatus,tdDel].forEach(td=>tr.appendChild(td));
+      tbody.appendChild(tr);
+    });
+  }
+
+  function updateCalcPreview(){
+    const mix = currentSelectedMix();
+    const qtyInput = $('qtyInput');
+    if(!qtyInput) return;
+    const qty = Number(qtyInput.value) || 0;
+    const cdeKg = mix ? mix.cde * qty : 0;
+    const normalKg = mix ? mix.normal * qty : 0;
+    const cdeTon = cdeKg / 1000;
+    const normalTon = normalKg / 1000;
+    
+    if($('previewCde'))$('previewCde').textContent = fmt(cdeTon,3);
+    if($('previewNormal'))$('previewNormal').textContent = fmt(normalTon,3);
+    if($('previewTotal'))$('previewTotal').textContent = fmt(cdeTon+normalTon,3);
+
+    const v = $('calcValidation');
+    const addBtn = $('addEntryBtn');
+    if(!v || !addBtn) return;
+
+    if(!mix){
+      v.className='validation warn'; v.textContent='กรุณาเพิ่มและเลือกมิกซ์ก่อนบันทึก';
+      addBtn.disabled=true; return;
+    }
+    if(qty <= 0){
+      v.className='validation warn'; v.textContent='กรอกจำนวนคอนกรีตมากกว่า 0 m³';
+      addBtn.disabled=true; return;
+    }
+    v.className='validation ok';
+    v.textContent='ตรวจสอบแล้ว: ' + mix.code + ' · ' + fmt(qty,2) + ' m³';
+    addBtn.disabled=false;
+  }
+
+  function renderHero(){
+    const selectedDate = getSelectedDate();
+    const selectedEntries = entries.filter(e => e.date === selectedDate);
+    const cdeSelected = selectedEntries.reduce((s,e) => s + e.cdeTon, 0);
+    const normalSelected = selectedEntries.reduce((s,e) => s + e.normalTon, 0);
+    const cdeAll = entries.reduce((s,e) => s + e.cdeTon, 0);
+    
+    if($('heroCdeToday'))$('heroCdeToday').textContent = fmt(cdeSelected, 3);
+    if($('heroNormalToday'))$('heroNormalToday').textContent = fmt(normalSelected, 3);
+    if($('heroCdeTodaySub'))$('heroCdeTodaySub').textContent = selectedEntries.length + ' รายการประจำวันที่ ' + selectedDate;
+    if($('heroCdeAll'))$('heroCdeAll').textContent = fmt(cdeAll, 3);
+    if($('heroTotalSub'))$('heroTotalSub').textContent = entries.length + ' รายการสะสมทั้งหมด';
+  }
+
+  function renderStats(){
+    const qty = entries.reduce((s,e)=>s+e.qty,0);
+    const cde = entries.reduce((s,e)=>s+e.cdeTon,0);
+    const normal = entries.reduce((s,e)=>s+e.normalTon,0);
+    
+    if($('statEntries'))$('statEntries').textContent = fmt(entries.length,0);
+    if($('statQty'))$('statQty').textContent = fmt(qty,2)+' m³';
+    if($('statCde'))$('statCde').textContent = fmt(cde,3)+' ตัน';
+    if($('statNormal'))$('statNormal').textContent = fmt(normal,3)+' ตัน';
+  }
+
+  function renderLog(){
+    const q = ($('logSearch')?.value || '').trim().toLowerCase();
+    const tbody = $('logTableBody');
+    const empty = $('logEmpty');
+    if(!tbody || !empty) return;
+    
+    tbody.innerHTML='';
+    const list=entries.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).filter(e=>{
+      if(!q) return true;
+      return (e.date+' '+e.code+' '+e.variant).toLowerCase().includes(q);
+    });
+    empty.style.display = list.length ? 'none' : 'block';
+
+    list.slice(0,500).forEach(e=>{
+      const tr=document.createElement('tr');
+      const label=e.variant ? e.code+' — '+e.variant : e.code;
+      tr.innerHTML='<td class="num">'+esc(e.date)+'</td>'+
+        '<td>'+esc(label)+'</td>'+
+        '<td class="num">'+fmt(e.qty,2)+'</td>'+
+        '<td class="num">'+fmt(e.cdeTon,3)+'</td>'+
+        '<td class="num">'+fmt(e.normalTon,3)+'</td>';
+      const td=document.createElement('td');
+      const b=document.createElement('button');
+      b.className='icon-btn';b.type='button';b.textContent='✕';
+      b.addEventListener('click',()=>deleteEntry(e.id));
+      td.appendChild(b);tr.appendChild(td);tbody.appendChild(tr);
+    });
+  }
+
+  function renderMixSummary(){
+    const q = ($('mixSummarySearch')?.value || '').trim().toLowerCase();
+    const byMix={};
+    entries.forEach(e=>{
+      const key=e.mixId || e.code+'|'+e.variant;
+      if(!byMix[key]) byMix[key]={label:e.variant?e.code+' — '+e.variant:e.code,qty:0,cdeTon:0,normalTon:0};
+      byMix[key].qty+=e.qty; byMix[key].cdeTon+=e.cdeTon; byMix[key].normalTon+=e.normalTon;
+    });
+    let rows=Object.values(byMix);
+    if(q) rows=rows.filter(r=>r.label.toLowerCase().includes(q));
+    rows.sort((a,b)=>b.cdeTon-a.cdeTon);
+    
+    const tbody = $('mixSummaryBody');
+    const empty = $('mixSummaryEmpty');
+    if(!tbody || !empty) return;
+    
+    tbody.innerHTML='';
+    empty.style.display = rows.length ? 'none' : 'block';
+    rows.forEach(r=>{
+      const total=r.cdeTon+r.normalTon;
+      const pct=total?(r.cdeTon/total*100):0;
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td>'+esc(r.label)+'</td>'+
+        '<td class="num">'+fmt(r.qty,2)+'</td>'+
+        '<td class="num">'+fmt(r.cdeTon,3)+'</td>'+
+        '<td class="num">'+fmt(r.normalTon,3)+'</td>'+
+        '<td class="num">'+(total?fmt(pct,1)+'%':'-')+'</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ---------- Canvas Line Chart Renderer ---------- */
+  function renderDailyLineChart(){
+    const canvas = $('dailyLineChart');
+    const empty = $('dailyEmpty');
+    if(!canvas) return;
+
+    const byDate = {};
+    entries.forEach(e => {
+      if(!byDate[e.date]) byDate[e.date] = { qty: 0, cdeTon: 0, normalTon: 0 };
+      byDate[e.date].qty += e.qty;
+      byDate[e.date].cdeTon += e.cdeTon;
+      byDate[e.date].normalTon += e.normalTon;
+    });
+
+    const dates = Object.keys(byDate).sort((a,b) => a.localeCompare(b)); // เรียงจากอดีตไปปัจจุบัน
+    if(dates.length === 0){
+      canvas.style.display = 'none';
+      if(empty) empty.style.display = 'block';
+      return;
+    } else {
+      canvas.style.display = 'block';
+      if(empty) empty.style.display = 'none';
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+
+    const padding = { top: 20, right: 20, bottom: 35, left: 40 };
+    const chartW = rect.width - padding.left - padding.right;
+    const chartH = rect.height - padding.top - padding.bottom;
+
+    const maxVal = Math.max(0.1, ...dates.flatMap(d => [byDate[d].cdeTon, byDate[d].normalTon]));
+    
+    // คำนวณสีสไตล์ระบบ
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const cdeColor = isDark ? '#8fb7c4' : '#3d5a66';
+    const normColor = isDark ? '#e0b877' : '#a97a34';
+    const gridColor = isDark ? '#3a3325' : '#d9d3c1';
+    const textColor = isDark ? '#847d68' : '#645f4f';
+
+    // วาดแกน Y Grid & Labels
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = textColor;
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 0.8;
+
+    const yTicks = 4;
+    for(let i=0; i<=yTicks; i++){
+      const yVal = (maxVal / yTicks) * i;
+      const y = padding.top + chartH - (i / yTicks) * chartH;
+      
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(padding.left + chartW, y);
+      ctx.stroke();
+
+      ctx.textAlign = 'right';
+      ctx.fillText(yVal.toFixed(1), padding.left - 6, y + 3);
+    }
+
+    const stepX = dates.length > 1 ? chartW / (dates.length - 1) : chartW / 2;
+
+    // ฟังก์ชันช่วยวาดเส้นกราฟ
+    function drawLine(key, color){
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+
+      dates.forEach((d, idx) => {
+        const val = byDate[d][key];
+        const x = dates.length === 1 ? padding.left + chartW / 2 : padding.left + idx * stepX;
+        const y = padding.top + chartH - (val / maxVal) * chartH;
+
+        if(idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // วาดจุดบนกราฟ
+      dates.forEach((d, idx) => {
+        const val = byDate[d][key];
+        const x = dates.length === 1 ? padding.left + chartW / 2 : padding.left + idx * stepX;
+        const y = padding.top + chartH - (val / maxVal) * chartH;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isDark ? '#211d16' : '#faf8f2';
+        ctx.stroke();
+      });
+    }
+
+    drawLine('cdeTon', cdeColor);
+    drawLine('normalTon', normColor);
+
+    // วาดป้ายชื่อวันที่แกน X
+    ctx.textAlign = 'center';
+    ctx.fillStyle = textColor;
+    
+    // ถ้าแสดงหลายจุดให้เลือกแสดงแกน X เพื่อไม่ให้ทับซ้อนกัน
+    const skipStep = Math.ceil(dates.length / 6);
+    dates.forEach((d, idx) => {
+      if(idx % skipStep === 0 || idx === dates.length - 1){
+        const x = dates.length === 1 ? padding.left + chartW / 2 : padding.left + idx * stepX;
+        const label = d.slice(5); // ตัดแสดงเฉพาะ MM-DD
+        ctx.fillText(label, x, rect.height - 10);
+      }
+    });
+  }
+
+  function renderAll(){
+    renderMixTable(); 
+    renderMixSelect(); 
+    renderHero(); 
+    renderStats(); 
+    renderLog(); 
+    renderMixSummary(); 
+    renderDailyLineChart(); 
+    updateCalcPreview(); 
+    renderPrintMixSection();
+  }
+
+  function browserDownload(filename,data,type){
+    const blob=new Blob([data],{type:type||'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function exportCsv(){
+    const rows=[['วันที่','รหัสมิกซ์','สัดส่วน','คิว (m³)','CDE (ตัน)','ทรายธรรมดา (ตัน)']];
+    entries.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).forEach(e=>{
+      rows.push([e.date,e.code,e.variant,e.qty.toFixed(2),e.cdeTon.toFixed(3),e.normalTon.toFixed(3)]);
+    });
+    const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    browserDownload('sand-usage-log.csv',csv,'text/csv;charset=utf-8');
+    toast('ส่งออก CSV แล้ว');
+  }
+
+  function exportJson(){
+    const payload={
+      app:'CDE Sand Usage Control System',
+      version:3,
+      exportedAt:new Date().toISOString(),
+      mixes,
+      entries,
+      printState
+    };
+    browserDownload('cde-sand-usage-backup-'+todayStr()+'.json',JSON.stringify(payload,null,2),'application/json;charset=utf-8');
+    toast('สร้างไฟล์ Backup แล้ว');
+  }
+
+  async function importJson(file){
+    try{
+      const text=await file.text();
+      const data=JSON.parse(text);
+      if(!data || !Array.isArray(data.mixes) || !Array.isArray(data.entries)) throw new Error('รูปแบบไม่ถูกต้อง');
+      mixes=data.mixes.map(normalizeMix);
+      entries=data.entries.map(normalizeEntry);
+      if(data.printState) printState = {...printState, ...data.printState};
+      saveLocal();
+      renderAll();
+      toast('Restore ข้อมูลสำเร็จ');
+    }catch(err){
+      alert('ไม่สามารถ Restore ได้: '+err.message);
+    }
+  }
+
+  function wireEvents(){
+    if($('dateInput')) {
+      $('dateInput').value = todayStr();$('dateInput').addEventListener('change', () => {
+        renderHero();
+        renderPrintMixSection();
+      });
+    }
+    
+    if($('mixSelect'))$('mixSelect').addEventListener('change', updateCalcPreview);
+    if($('qtyInput'))$('qtyInput').addEventListener('input', updateCalcPreview);
+    if($('logSearch'))$('logSearch').addEventListener('input', renderLog);
+    if($('mixSummarySearch'))$('mixSummarySearch').addEventListener('input', renderMixSummary);
+
+    // Toggle ตารางข้อมูลมิกซ์ (ซ่อน/แสดง)
+    if($('toggleMixTableBtn')) {$('toggleMixTableBtn').addEventListener('click', () => {
+        const wrap = $('mixTableWrap');
+        const btn = $('toggleMixTableBtn');
+        if(!wrap || !btn) return;
+
+        isMixTableVisible = !isMixTableVisible;
+        if(isMixTableVisible) {
+          wrap.style.display = 'block';
+          btn.textContent = '▼ ซ่อนตาราง';
+        } else {
+          wrap.style.display = 'none';
+          btn.textContent = '▲ แสดงตาราง';
+        }
+      });
+    }
+
+    if($('openPrintMixBtn')) {$('openPrintMixBtn').addEventListener('click',()=>{
+        $('mainView').classList.add('page-hidden');$('printMixPage').classList.remove('page-hidden');
+        window.scrollTo({top:0,behavior:'smooth'});
+      });
+    }
+
+    if($('backFromPrintMixBtn')) {$('backFromPrintMixBtn').addEventListener('click',()=>{
+        $('printMixPage').classList.add('page-hidden');$('mainView').classList.remove('page-hidden');
+        window.scrollTo({top:0,behavior:'smooth'});
+      });
+    }
+
+    if($('printPdfBtn')) {$('printPdfBtn').addEventListener('click', () => {
+        window.print();
+      });
+    }
+
+    if($('pMix1Select'))$('pMix1Select').addEventListener('change',()=>{ printState.mix1CdeDirty=false; printState.mix1NormDirty=false; renderPrintMixSection(); });
+    if($('pMix2Select'))$('pMix2Select').addEventListener('change',()=>{ printState.mix2CdeDirty=false; printState.mix2NormDirty=false; renderPrintMixSection(); });
+    if($('pMix1Qty'))$('pMix1Qty').addEventListener('input',()=>{ printState.mix1CdeDirty=false; printState.mix1NormDirty=false; renderPrintMixSection(); });
+    if($('pMix2Qty'))$('pMix2Qty').addEventListener('input',()=>{ printState.mix2CdeDirty=false; printState.mix2NormDirty=false; renderPrintMixSection(); });
+
+    if($('pMix1Cde'))$('pMix1Cde').addEventListener('input',()=>{ printState.mix1CdeDirty=true; renderPrintMixSection(); });
+    if($('pMix1Norm'))$('pMix1Norm').addEventListener('input',()=>{ printState.mix1NormDirty=true; renderPrintMixSection(); });
+    if($('pMix2Cde'))$('pMix2Cde').addEventListener('input',()=>{ printState.mix2CdeDirty=true; renderPrintMixSection(); });
+    if($('pMix2Norm'))$('pMix2Norm').addEventListener('input',()=>{ printState.mix2NormDirty=true; renderPrintMixSection(); });
+
+    /* ดึงยอดเบิกประจำวันที่เลือกมายัง Mix 1 อัตโนมัติ */
+    if($('pResetAutoBtn')) {$('pResetAutoBtn').addEventListener('click',()=>{
+        const selectedDate = getSelectedDate();
+        const selectedEntries = entries.filter(e => e.date === selectedDate);
+
+        const totalCdeSelected = selectedEntries.reduce((s, e) => s + e.cdeTon, 0);
+        const totalNormSelected = selectedEntries.reduce((s, e) => s + e.normalTon, 0);
+
+        printState.mix1CdeDirty = true;
+        printState.mix1NormDirty = true;
+        printState.mix2CdeDirty = false;
+        printState.mix2NormDirty = false;
+
+        if($('pMix1Cde'))$('pMix1Cde').value = totalCdeSelected.toFixed(3);
+        if($('pMix1Norm'))$('pMix1Norm').value = totalNormSelected.toFixed(3);
+
+        renderPrintMixSection();
+        toast('ดึงยอดเบิกประจำวันที่ (' + selectedDate + ') เรียบร้อยแล้ว');
+      });
+    }
+
+    ['pStockACde','pStockANorm','pAdjForBCde','pAdjForBNorm','pPrintOutCde','pPrintOutNorm','pAdjForCCde','pAdjForCNorm','pStockDCde','pStockDNorm'].forEach(id => {
+      const el = $(id);
+      if(el) el.addEventListener('input', renderPrintMixSection);
+    });
+
+    if($('addEntryBtn')) {$('addEntryBtn').addEventListener('click',()=>{
+        const mix=currentSelectedMix(), qty=Number($('qtyInput')?.value)||0;
+        if(!mix || qty<=0) return;
+        addEntry({
+          mixId:mix.id, code:mix.code, variant:mix.variant, cde:mix.cde, normal:mix.normal,
+          qty, cdeTon:mix.cde*qty*.001, normalTon:mix.normal*qty*.001,
+          date:getSelectedDate(), createdAt:Date.now()
+        });
+        if($('qtyInput'))$('qtyInput').value='';
+        updateCalcPreview();
+      });
+    }
+
+    if($('addMixBtn')) {$('addMixBtn').addEventListener('click',()=>{
+        addMix({code:'มิกซ์ใหม่', variant:'', cde:0, normal:0, note:''});
+      });
+    }
+
+    if($('exportCsvBtn'))$('exportCsvBtn').addEventListener('click', exportCsv);
+    if($('exportJsonBtn'))$('exportJsonBtn').addEventListener('click', exportJson);
+    
+    if($('importJsonInput')) {$('importJsonInput').addEventListener('change',e=>{
+        const file=e.target.files?.[0]; if(file) importJson(file); e.target.value='';
+      });
+    }
+
+    if($('clearEntriesBtn')) {$('clearEntriesBtn').addEventListener('click',()=>{
+        if(!entries.length) return;
+        if(!confirm('ล้างประวัติการเบิกทั้งหมดหรือไม่?')) return;
+        entries=[]; saveLocal(); renderAll();
+        toast('ล้างประวัติแล้ว');
+      });
+    }
+
+    if($('resetBtn')) {$('resetBtn').addEventListener('click',()=>{
+        if(!confirm('รีเซ็ตข้อมูลทั้งหมด?')) return;
+        mixes=[]; entries=[];
+        printState = {
+          mix1Id:'', mix1Qty:21.00, mix2Id:'', mix2Qty:0.00,
+          mix1CdeDirty:false, mix1NormDirty:false, mix2CdeDirty:false, mix2NormDirty:false,
+          mix1CdeManual:1.084, mix1NormManual:1.084, mix2CdeManual:0.000, mix2NormManual:0.000,
+          adjForBCde:7.588, adjForBNorm:7.588,
+          printOutCde:9.191, printOutNorm:9.191,
+          adjForCCde:0.000, adjForCNorm:0.000,
+          stockACde:92.557, stockANorm:92.557,
+          stockDCde:80.000, stockDNorm:80.000
+        };
+        saveLocal(); renderAll(); toast('รีเซ็ตข้อมูลแล้ว');
+      });
+    }
+
+    if($('refreshBtn'))$('refreshBtn').addEventListener('click', ()=>{ loadLocal(); toast('รีเฟรชข้อมูลแล้ว'); });
+
+    if($('themeBtn')) {$('themeBtn').addEventListener('click',()=>{
+        const root=document.documentElement;
+        const next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+        root.setAttribute('data-theme',next); localStorage.setItem(STORAGE.theme,next);
+        renderDailyLineChart();
+      });
+    }
+
+    window.addEventListener('resize', renderDailyLineChart);
+  }
+
+  function init(){
+    const savedTheme=localStorage.getItem(STORAGE.theme);
+    if(savedTheme) document.documentElement.setAttribute('data-theme',savedTheme);
+    loadLocal();
+    wireEvents();
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+  else init();
+})();
+</script>
+</body>
+</html>
